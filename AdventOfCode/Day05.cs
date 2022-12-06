@@ -1,9 +1,8 @@
 ﻿using System.Text.RegularExpressions;
-using Spectre.Console.Rendering;
 
 namespace AdventOfCode;
 
-public sealed class Day05 : BaseDay
+public sealed class Day05 : CustomDirBaseDay
 {
     private readonly string _input;
 

@@ -2,7 +2,7 @@
 
 namespace AdventOfCode;
 
-public sealed class Day03 : BaseDay
+public sealed class Day03 : CustomDirBaseDay
 {
     private readonly string _input;
 
