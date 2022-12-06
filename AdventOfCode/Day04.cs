@@ -41,7 +41,7 @@ public sealed class Day04 : BaseDay
     private static bool HasPartialOverlap(RangePair rangePairs)
     {
         // just need to check if first range's start or end are inside of the
-        // range of the second range
+        // range of the second range OR if there's a full overlap
         return HasFullOverlap(rangePairs) ||
                (rangePairs.First.Start >= rangePairs.Second.Start && rangePairs.First.Start <= rangePairs.Second.End) ||
                (rangePairs.First.End >= rangePairs.Second.Start && rangePairs.First.End <= rangePairs.Second.End);

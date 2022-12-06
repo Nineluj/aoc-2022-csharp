@@ -10,4 +10,9 @@ public static class Utils
     {
         return input.Split(Environment.NewLine).Where(line => line.Length != 0);
     }
+    
+    public static IEnumerable<string> GetLinesIncludeEmpty(string input)
+    {
+        return input.Split(Environment.NewLine);
+    }
 }
