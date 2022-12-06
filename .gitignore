@@ -351,5 +351,5 @@ MigrationBackup/
 
 
 AdventOfCode/Inputs/*
-!AdventOfCode/Inputs/keep
+!AdventOfCode/Inputs/.gitkeep
 .idea
