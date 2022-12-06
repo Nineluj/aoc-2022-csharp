@@ -11,24 +11,41 @@ public sealed class Day06 : BaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    private bool AreItemsUnique<T>(LinkedList<T> linkedList)
-    {
-        return linkedList.Distinct().Count() == linkedList.Count;
-    }
     private int IndexOfStartOfPacketMarker(string input, int k)
     {
-        var items = new LinkedList<char>(input[..k]);
-        for (var i = k; i < input.Length; i++)
-        {
-            if (AreItemsUnique(items))
-            {
-                return i;
-            }
-            
-            items.RemoveFirst();
-            items.AddLast(input[i]);
-        }
+        var counts = new Dictionary<char, uint>();
+        var left = 0;
+        var right = 0;
 
+        /*
+         * move right as far as possible until:
+         * - reached window size = k => return
+         * - we have a duplicate character, move left until there is no longer a dupe
+         * will iterate over each value at most twice (once for left and once for right index pointers)
+         */
+        while (right < input.Length)
+        {
+            var rightItem = input[right];
+            counts.TryGetValue(rightItem, out var rightCharCount);
+            
+            if (rightCharCount != 0)
+            {
+                while (counts[rightItem] > 0)
+                {
+                    var leftItem = input[left];
+                    counts[leftItem] -= 1;
+                    left++;
+                }
+            }
+            else if (right - left == k)
+            {
+                return right;
+            }
+
+            counts[rightItem] = 1;
+            right++;
+        }
+        
         throw new KeyNotFoundException("couldn't find start of packet marker");
     }
 
