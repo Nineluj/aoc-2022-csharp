@@ -350,5 +350,6 @@ MigrationBackup/
 .ionide/
 
 
-Inputs/
+AdventOfCode/Inputs/*
+!AdventOfCode/Inputs/keep
 .idea
