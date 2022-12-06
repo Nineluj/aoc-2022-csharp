@@ -39,7 +39,9 @@ public sealed class Day05 : CustomDirBaseDay
     private static List<HanoiInstruction> GetInstructions(List<string> lines)
     {
         var instructionRe = new Regex(@"move (\d+) from (\d+) to (\d+)");
-        return lines.Select(t => instructionRe.Match(t).Groups.Values
+        return lines
+            .Where(l => l.Any())
+            .Select(t => instructionRe.Match(t).Groups.Values
                 .Skip(1)
                 .Select(v => int.Parse(v.Value)).ToList())
             .Select(values =>

@@ -33,4 +33,17 @@ rootCommand.SetHandler(async (runAll, useTestData, days) =>
         await Solver.SolveLast(opt => opt.ClearConsole = false);
 }, allOption, testOption, dayOption);
 
-rootCommand.Invoke(args);
+#nullable enable
+var fetchInputCommand = new Command("download");
+
+var sessionTokenOption = new Option<string?>("--session") { IsRequired = false };
+var yearOption = new Option<uint>(
+    "--year", () => 2022, "The year to run");
+fetchInputCommand.AddOption(sessionTokenOption);
+fetchInputCommand.AddOption(dayOption);
+fetchInputCommand.AddOption(yearOption);
+fetchInputCommand.SetHandler(InputDownloader.Download,
+    sessionTokenOption, dayOption, yearOption);
+
+rootCommand.AddCommand(fetchInputCommand);
+await rootCommand.InvokeAsync(args);

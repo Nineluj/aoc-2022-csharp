@@ -10,3 +10,10 @@ Uses `System.CommandLine`. Options are:
 --day <specific day> # runs the given days
 <? nothing> # runs the last day
 ```
+
+Download inputs using:
+```shell
+download --session <SESSION_TOKEN> --day 5
+```
+The day is optional and the session token can also be set as an
+environment variable.
