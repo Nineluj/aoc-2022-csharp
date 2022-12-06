@@ -11,10 +11,6 @@ public sealed class Day05 : CustomDirBaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    private record HanoiInstruction(int Quantity, int FromPile, int ToPile);
-    private record HanoiGame(Dictionary<int, Stack<char>> Stacks);
-    private record HanoiGameWithInstructions(HanoiGame Game, List<HanoiInstruction> Instructions);
-    
     private static Dictionary<int, Stack<char>> GetStacks(List<string> lines)
     {
         var result = new Dictionary<int, Stack<char>>();
@@ -25,7 +21,7 @@ public sealed class Day05 : CustomDirBaseDay
         {
             var indexVal = indicesLine[x];
             if (indexVal == ' ') continue;
-            
+
             var stack = new Stack<char>();
             for (var y = lines.Count - 2; y >= 0; y--)
             {
@@ -33,6 +29,7 @@ public sealed class Day05 : CustomDirBaseDay
                 if (stackVal == ' ') break;
                 stack.Push(stackVal);
             }
+
             result.Add(int.Parse(indexVal.ToString()), stack);
         }
 
@@ -45,23 +42,23 @@ public sealed class Day05 : CustomDirBaseDay
         return lines.Select(t => instructionRe.Match(t).Groups.Values
                 .Skip(1)
                 .Select(v => int.Parse(v.Value)).ToList())
-                .Select(values => 
-                    new HanoiInstruction(Quantity: values[0], FromPile: values[1], ToPile: values[2]))
-                .ToList();
+            .Select(values =>
+                new HanoiInstruction(values[0], values[1], values[2]))
+            .ToList();
     }
+
     private static HanoiGameWithInstructions ParseInput(string input)
     {
         var text = Utils.GetLinesIncludeEmpty(input).ToList();
         var i = 0;
         for (; i < text.Count; i++)
-        {
-            if (!text[i].Any()) break;
-        }
+            if (!text[i].Any())
+                break;
 
         var stacks = GetStacks(text.GetRange(0, i));
         var instructions = GetInstructions(text.GetRange(i + 1, text.Count - (i + 1)));
 
-        return new HanoiGameWithInstructions(new HanoiGame(Stacks: stacks), Instructions: instructions);
+        return new HanoiGameWithInstructions(new HanoiGame(stacks), instructions);
     }
 
     private static HanoiGame RunInstructions(HanoiGame game, IEnumerable<HanoiInstruction> instructions)
@@ -70,10 +67,7 @@ public sealed class Day05 : CustomDirBaseDay
         {
             var from = game.Stacks[inst.FromPile];
             var to = game.Stacks[inst.ToPile];
-            for (var i = 0; i < inst.Quantity; i++)
-            {
-                to.Push(from.Pop());
-            }
+            for (var i = 0; i < inst.Quantity; i++) to.Push(from.Pop());
         }
 
         return game;
@@ -86,15 +80,9 @@ public sealed class Day05 : CustomDirBaseDay
             var from = game.Stacks[inst.FromPile];
             var to = game.Stacks[inst.ToPile];
             var itemsToMove = new Stack<char>();
-            for (var i = 0; i < inst.Quantity; i++)
-            {
-                itemsToMove.Push(from.Pop());
-            }
+            for (var i = 0; i < inst.Quantity; i++) itemsToMove.Push(from.Pop());
 
-            foreach (var item in itemsToMove)
-            {
-                to.Push(item);
-            }
+            foreach (var item in itemsToMove) to.Push(item);
         }
 
         return game;
@@ -115,4 +103,10 @@ public sealed class Day05 : CustomDirBaseDay
             .Stacks.Select(stack => stack.Value.Peek());
         return new ValueTask<string>(string.Join("", topItems));
     }
+
+    private record HanoiInstruction(int Quantity, int FromPile, int ToPile);
+
+    private record HanoiGame(Dictionary<int, Stack<char>> Stacks);
+
+    private record HanoiGameWithInstructions(HanoiGame Game, List<HanoiInstruction> Instructions);
 }

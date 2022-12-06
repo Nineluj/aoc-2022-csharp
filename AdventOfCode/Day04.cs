@@ -11,9 +11,6 @@ public sealed class Day04 : CustomDirBaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    private record Range(int Start, int End);
-    private record RangePair(Range First, Range Second);
-    
     private static IEnumerable<RangePair> GetPairRanges(string input)
     {
         var re = new Regex(@"(\d+)-(\d+),(\d+)-(\d+)");
@@ -37,7 +34,7 @@ public sealed class Day04 : CustomDirBaseDay
                (rangePairs.First.Start <= rangePairs.Second.Start &&
                 rangePairs.First.End >= rangePairs.Second.End);
     }
-    
+
     private static bool HasPartialOverlap(RangePair rangePairs)
     {
         // just need to check if first range's start or end are inside of the
@@ -60,4 +57,8 @@ public sealed class Day04 : CustomDirBaseDay
         var result = ranges.Where(HasPartialOverlap).Count();
         return new ValueTask<string>(result.ToString());
     }
+
+    private record Range(int Start, int End);
+
+    private record RangePair(Range First, Range Second);
 }

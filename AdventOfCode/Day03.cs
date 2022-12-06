@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace AdventOfCode;
+﻿namespace AdventOfCode;
 
 public sealed class Day03 : CustomDirBaseDay
 {
@@ -10,15 +8,15 @@ public sealed class Day03 : CustomDirBaseDay
     {
         _input = File.ReadAllText(InputFilePath);
     }
-    
+
     public override ValueTask<string> Solve_1()
     {
         var rucksacks = GetRucksacks(_input);
-        var val= rucksacks
+        var val = rucksacks
             .Select(FindShared)
             .Select(GetPriority)
             .Sum();
-            
+
         return new ValueTask<string>(val.ToString());
     }
 
@@ -36,7 +34,7 @@ public sealed class Day03 : CustomDirBaseDay
             })
             .Select(GetPriority)
             .Sum();
-        
+
         return new ValueTask<string>(val.ToString());
     }
 
@@ -54,8 +52,6 @@ public sealed class Day03 : CustomDirBaseDay
             _ => throw new ArgumentException($"Cannot get priority of non-letter {c}")
         };
     }
-    
-    private record Rucksack(HashSet<char> Compartment1, HashSet<char> Compartment2);
 
     private List<Rucksack> GetRucksacks(string input)
     {
@@ -65,4 +61,6 @@ public sealed class Day03 : CustomDirBaseDay
             return new Rucksack(new HashSet<char>(line[..halfPoint]), new HashSet<char>(line[halfPoint..]));
         }).ToList();
     }
+
+    private record Rucksack(HashSet<char> Compartment1, HashSet<char> Compartment2);
 }

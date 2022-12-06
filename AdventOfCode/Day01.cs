@@ -31,7 +31,6 @@ public sealed class Day01 : CustomDirBaseDay
         var collect = new List<List<int>>();
         var curr = new List<int>();
         foreach (var line in input.Split(Environment.NewLine))
-        {
             if (line.Length == 0)
             {
                 collect.Add(curr);
@@ -41,7 +40,6 @@ public sealed class Day01 : CustomDirBaseDay
             {
                 curr.Add(int.Parse(line));
             }
-        }
 
         return collect;
     }

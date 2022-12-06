@@ -1,12 +1,12 @@
-using AdventOfCode;
 using System.CommandLine;
+using AdventOfCode;
 
 var allOption = new Option<bool>(
-    name: "--all",
-    description: "Run the solutions for all the days");
+    "--all",
+    "Run the solutions for all the days");
 var testOption = new Option<bool>(
-    name: "--test",
-    description: "Run using the test data in the TestInputs/ directory");
+    "--test",
+    "Run using the test data in the TestInputs/ directory");
 var dayOption = new Option<List<uint>>(
     "--day",
     "Specify what days to run"
@@ -17,29 +17,20 @@ rootCommand.AddOption(allOption);
 rootCommand.AddOption(testOption);
 rootCommand.AddOption(dayOption);
 
-rootCommand.SetHandler(async (runAll, useTestData, days) => 
-    {
-        if (useTestData)
-        {
-            SettingsSingleton.Instance.InputFileDirPath = "TestInputs";
-        }
+rootCommand.SetHandler(async (runAll, useTestData, days) =>
+{
+    if (useTestData) SettingsSingleton.Instance.InputFileDirPath = "TestInputs";
 
-        if (days.Any())
-        { 
-            await Solver.Solve(days);
-            
-        } else if (runAll)
+    if (days.Any())
+        await Solver.Solve(days);
+    else if (runAll)
+        await Solver.SolveAll(opt =>
         {
-            await Solver.SolveAll(opt =>
-            {
-                opt.ShowConstructorElapsedTime = true;
-                opt.ShowTotalElapsedTimePerDay = true;
-            });
-        }
-        else
-        {
-            await Solver.SolveLast(opt => opt.ClearConsole = false);
-        }
-    }, allOption, testOption, dayOption);
+            opt.ShowConstructorElapsedTime = true;
+            opt.ShowTotalElapsedTimePerDay = true;
+        });
+    else
+        await Solver.SolveLast(opt => opt.ClearConsole = false);
+}, allOption, testOption, dayOption);
 
 rootCommand.Invoke(args);

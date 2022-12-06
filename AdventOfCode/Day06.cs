@@ -1,6 +1,4 @@
-﻿using System.Collections;
-
-namespace AdventOfCode;
+﻿namespace AdventOfCode;
 
 public sealed class Day06 : CustomDirBaseDay
 {
@@ -27,25 +25,20 @@ public sealed class Day06 : CustomDirBaseDay
         {
             var rightItem = input[right];
             counts.TryGetValue(rightItem, out var rightCharCount);
-            
+
             if (rightCharCount != 0)
-            {
                 while (counts[rightItem] > 0)
                 {
                     var leftItem = input[left];
                     counts[leftItem] -= 1;
                     left++;
                 }
-            }
-            else if (right - left == k)
-            {
-                return right;
-            }
+            else if (right - left == k) return right;
 
             counts[rightItem] = 1;
             right++;
         }
-        
+
         throw new KeyNotFoundException("couldn't find start of packet marker");
     }
 

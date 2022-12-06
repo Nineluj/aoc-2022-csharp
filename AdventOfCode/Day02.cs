@@ -31,7 +31,7 @@ public class Day02 : CustomDirBaseDay
             0 => 3,
             1 => 0,
             2 => 6,
-            {} other => throw new ArgumentOutOfRangeException($"Can't deal with {other}")
+            { } other => throw new ArgumentOutOfRangeException($"Can't deal with {other}")
         };
         return moveScore + resultScore;
     }
@@ -64,17 +64,19 @@ public class Day02 : CustomDirBaseDay
         var expectedMove = GetExpectedMove(round);
         return GetGameScore(round with { c2 = expectedMove });
     }
-    
-    private record RockPaperScissorsRound(char c1, char c2);
+
     private List<RockPaperScissorsRound> ParseGames(string input)
     {
         var re = new Regex("([A-C]) ([X-Z])");
         return (
-            from line in input.Split(Environment.NewLine) 
-            select re.Match(line) into match 
+            from line in input.Split(Environment.NewLine)
+            select re.Match(line)
+            into match
             let move1 = match.Groups[1].Value.First()
             let move2 = match.Groups[2].Value.First()
             select new RockPaperScissorsRound(move1, move2)
-            ).ToList();
+        ).ToList();
     }
+
+    private record RockPaperScissorsRound(char c1, char c2);
 }
