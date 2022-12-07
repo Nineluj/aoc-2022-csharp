@@ -39,7 +39,7 @@ public sealed class Day06 : CustomDirBaseDay
             right++;
         }
 
-        throw new KeyNotFoundException("couldn't find start of packet marker");
+        throw new SolvingException("couldn't find start of packet marker");
     }
 
     public override ValueTask<string> Solve_1()
