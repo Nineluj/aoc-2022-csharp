@@ -69,7 +69,7 @@ public sealed class Day07 : CustomDirBaseDay
 
     public override ValueTask<string> Solve_1()
     {
-        var maxDirSize = 100000;
+        var maxDirSize = 100_000;
         var fs = ParseFromTerminal(_input);
 
         var totalSize = fs.Lookup
@@ -83,13 +83,13 @@ public sealed class Day07 : CustomDirBaseDay
 
     public override ValueTask<string> Solve_2()
     {
-        var diskSpace = 70000000;
-        var requiredSpace = 30000000;
+        const int diskSpace = 70_000_000;
+        const int requiredSpace = 30_000_000;
+
         var fs = ParseFromTerminal(_input);
 
         var usedSpace = fs.RootDir.GetContentSize();
-        var remainingSpace = diskSpace - usedSpace;
-        var spaceToFree = requiredSpace - remainingSpace;
+        var spaceToFree = requiredSpace - (diskSpace - usedSpace);
 
         var bestCandidate = fs.Lookup.Select(pair => pair.Value)
             .Where(x => x is FSDir)
