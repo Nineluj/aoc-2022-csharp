@@ -4,31 +4,20 @@ namespace AdventOfCode;
 
 public sealed class Day07 : CustomDirBaseDay
 {
+    private readonly Regex _cdRe = new(@"\$ cd (\S+)");
     private readonly string _input;
+    private readonly Regex _lsDirRe = new(@"dir (\S+)");
+    private readonly Regex _lsFileRe = new(@"(\d+) (\S+)");
 
     public Day07()
     {
         _input = File.ReadAllText(InputFilePath);
     }
 
-    private string GetPathString(LinkedList<string> path)
-    {
-        return "/" + string.Join('/', path);
-    }
-
-    private string GetPathParentString(LinkedList<string> path)
-    {
-        return "/" + string.Join('/', path.SkipLast(1));
-    }
-
     private FS ParseFromTerminal(string input)
     {
         var lines = Utils.GetLines(input).ToList();
-        var cdRe = new Regex(@"\$ cd (\S+)");
-        var lsFileRe = new Regex(@"(\d+) (\S+)");
-        var lsDirRe = new Regex(@"dir (\S+)");
-
-        var currentPath = new LinkedList<string>();
+        var currentPath = new Path();
 
         var lookup = new Dictionary<string, FSItem>();
         var root = new FSDir("/");
@@ -39,11 +28,8 @@ public sealed class Day07 : CustomDirBaseDay
             var l = lines[i];
             if (l.StartsWith("$ cd"))
             {
-                var cdDest = Utils.GetFirstMatchRegex(cdRe, l);
-                if (cdDest == "..")
-                    currentPath.RemoveLast();
-                else
-                    currentPath.AddLast(cdDest);
+                var cdDest = Utils.GetFirstMatchRegex(_cdRe, l);
+                currentPath.ChangeDirectory(cdDest);
             }
             else if (l.StartsWith("$ ls"))
             {
@@ -55,19 +41,17 @@ public sealed class Day07 : CustomDirBaseDay
 
                     if (l2.StartsWith("dir"))
                     {
-                        var m = Utils.GetAllRegexMatches(lsDirRe, l2).ToList();
+                        var m = Utils.GetAllRegexMatches(_lsDirRe, l2).ToList();
                         newItem = new FSDir(m[0]);
                     }
                     else
                     {
-                        var m = Utils.GetAllRegexMatches(lsFileRe, l2).ToList();
+                        var m = Utils.GetAllRegexMatches(_lsFileRe, l2).ToList();
                         newItem = new FSFile(m[1], int.Parse(m[0]));
                     }
 
-                    currentPath.AddLast(newItem.Name);
-                    lookup[GetPathString(currentPath)] = newItem;
-                    (lookup[GetPathParentString(currentPath)] as FSDir)?.Content.Add(newItem);
-                    currentPath.RemoveLast();
+                    lookup[currentPath.GetPathForItemInDirectory(newItem.Name)] = newItem;
+                    (lookup[currentPath.GetPathString()] as FSDir)?.Content.Add(newItem);
 
                     j++;
                 }
@@ -88,15 +72,13 @@ public sealed class Day07 : CustomDirBaseDay
         var maxDirSize = 100000;
         var fs = ParseFromTerminal(_input);
 
-        var largeSizeDirectoryTotal = 0;
-        foreach (var (_, item) in fs.Lookup)
-        {
-            if (item is not FSDir) continue;
-            var contentSize = item.GetContentSize();
-            if (contentSize < maxDirSize) largeSizeDirectoryTotal += contentSize;
-        }
-
-        return new ValueTask<string>(largeSizeDirectoryTotal.ToString());
+        var totalSize = fs.Lookup
+            .Select(k => k.Value)
+            .Where(x => x is FSDir)
+            .Select(x => x.GetContentSize())
+            .Where(x => x < maxDirSize)
+            .Sum();
+        return new ValueTask<string>(totalSize.ToString());
     }
 
     public override ValueTask<string> Solve_2()
@@ -115,6 +97,31 @@ public sealed class Day07 : CustomDirBaseDay
             .Where(size => size >= spaceToFree).MinBy(x => x);
 
         return new ValueTask<string>(bestCandidate.ToString());
+    }
+
+    private class Path
+    {
+        private readonly LinkedList<string> _data = new();
+
+        public void ChangeDirectory(string destination)
+        {
+            if (destination == "..")
+                _data.RemoveLast();
+            else
+                _data.AddLast(destination);
+        }
+
+        public string GetPathString()
+        {
+            if (!_data.Any()) return "/";
+
+            return "/" + string.Join('/', _data);
+        }
+
+        public string GetPathForItemInDirectory(string itemName)
+        {
+            return GetPathString() + (_data.Any() ? "/" : "") + itemName;
+        }
     }
 
     private abstract class FSItem
