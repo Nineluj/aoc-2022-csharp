@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode;
+﻿using AdventOfCode.Models;
+
+namespace AdventOfCode;
 
 public sealed class Day09 : CustomDirBaseDay
 {
@@ -16,14 +18,14 @@ public sealed class Day09 : CustomDirBaseDay
             );
     }
 
-    private void DrawGrid(Coordinate2D head, Coordinate2D tail)
+    private void DrawGrid(Vector2Int head, Vector2Int tail, int xMax, int yMax)
     {
         Console.WriteLine("=======");
-        for (var y = 4; y >= 0; y--)
+        for (var y = yMax - 1; y >= 0; y--)
         {
-            for (var x = 0; x < 5; x++)
+            for (var x = 0; x < xMax; x++)
             {
-                var c = new Coordinate2D(x, y);
+                var c = new Vector2Int(x, y);
                 Console.Write(c.Equals(head) ? 'H' : c.Equals(tail) ? 'T' : '.');
             }
 
@@ -33,115 +35,75 @@ public sealed class Day09 : CustomDirBaseDay
         Console.WriteLine("=======");
     }
 
-    private ISet<Coordinate2D> SimulateMovements(IEnumerable<Movement> movements)
+    private ISet<Vector2Int> SimulateMovements(IEnumerable<Movement> movements, int ropeLength)
     {
-        var h = new Coordinate2D(0, 0);
-        var t = new Coordinate2D(0, 0);
-        var seen = new HashSet<Coordinate2D>();
+        var ropeCoordinates = Enumerable
+            .Range(0, ropeLength)
+            .Select(_ => new Vector2Int(0, 0))
+            .ToList();
+
+        var seen = new HashSet<Vector2Int>();
         foreach (var move in movements)
             for (var i = 0; i < move.Magnitude; i++)
             {
                 // Console.WriteLine($"head={h}, tail={t}");
-                // DrawGrid(h, t);
-                seen.Add(t);
-                h = h.ToDirection(move.D);
-                t = t.PullTowards(h);
+                // DrawGrid(h, t, 5, 5);
+                seen.Add(ropeCoordinates[^1]);
+
+                ropeCoordinates[0] = ropeCoordinates[0].ToDirection(move.D);
+                for (var ropeIndex = 1; ropeIndex < ropeLength; ropeIndex++)
+                    ropeCoordinates[ropeIndex] = PullTowards(
+                        ropeCoordinates[ropeIndex],
+                        ropeCoordinates[ropeIndex - 1]);
             }
 
+        seen.Add(ropeCoordinates[^1]);
         return seen;
     }
 
     public override ValueTask<string> Solve_1()
     {
-        var result = SimulateMovements(GetMovements(_input)).Count();
+        var result = SimulateMovements(GetMovements(_input), 2).Count;
         return new ValueTask<string>(result.ToString());
     }
 
     public override ValueTask<string> Solve_2()
     {
-        var result = "";
-        throw new NotImplementedException();
-        // return new ValueTask<string>(result.ToString());
+        var result = SimulateMovements(GetMovements(_input), 10).Count;
+
+        return new ValueTask<string>(result.ToString());
     }
 
-    private enum Direction
+
+    private Vector2Int PullTowards(Vector2Int origin, Vector2Int other)
     {
-        Up = 'U',
-        Down = 'D',
-        Left = 'L',
-        Right = 'R'
+        var delta = other.Diff(origin);
+        if (WithinNoPullRange(delta)) return origin;
+
+        if (delta.X == 0)
+            return delta.Y switch
+            {
+                > 0 => origin with { Y = origin.Y + 1 },
+                < 0 => origin with { Y = origin.Y - 1 },
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        if (delta.Y == 0)
+            return delta.X switch
+            {
+                > 0 => origin with { X = origin.X + 1 },
+                < 0 => origin with { X = origin.X - 1 },
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
+        var unitVec = delta.ToUnitVector();
+        return new Vector2Int(origin.X + unitVec.X, origin.Y + unitVec.Y);
+    }
+
+
+    private static bool WithinNoPullRange(Vector2Int delta)
+    {
+        return Math.Abs(delta.X) <= 1 && Math.Abs(delta.Y) <= 1;
     }
 
     private record Movement(Direction D, int Magnitude);
-
-    private record Coordinate2D(int X, int Y)
-    {
-        public Coordinate2D ToDirection(Direction d)
-        {
-            return d switch
-            {
-                Direction.Up => this with { Y = Y + 1 },
-                Direction.Down => this with { Y = Y - 1 },
-                Direction.Left => this with { X = X - 1 },
-                Direction.Right => this with { X = X + 1 },
-                _ => throw new ArgumentOutOfRangeException(nameof(d), d, null)
-            };
-        }
-
-        public Coordinate2D Diff(Coordinate2D other)
-        {
-            return new Coordinate2D(X - other.X, Y - other.Y);
-        }
-
-        public bool WithinNoPullRange(Coordinate2D delta)
-        {
-            return Math.Abs(delta.X) <= 1 && Math.Abs(delta.Y) <= 1;
-        }
-
-        public Direction? SameDirectionAs(Coordinate2D other)
-        {
-            if (X == other.X)
-            {
-                if (Y > other.Y) return Direction.Down;
-                if (Y < other.Y) return Direction.Up;
-            }
-
-            if (Y == other.Y)
-            {
-                if (X > other.X) return Direction.Left;
-                if (X < other.X) return Direction.Right;
-            }
-
-            return null;
-        }
-
-        public Coordinate2D ToUnitVector()
-        {
-            return new Coordinate2D(X / Math.Abs(X), Y / Math.Abs(Y));
-        }
-
-        public Coordinate2D PullTowards(Coordinate2D other)
-        {
-            var delta = other.Diff(this);
-            if (WithinNoPullRange(delta)) return this;
-
-            if (delta.X == 0)
-                return delta.Y switch
-                {
-                    > 0 => this with { Y = Y + 1 },
-                    < 0 => this with { Y = Y - 1 },
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-            if (delta.Y == 0)
-                return delta.X switch
-                {
-                    > 0 => this with { X = X + 1 },
-                    < 0 => this with { X = X - 1 },
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-
-            var unitVec = delta.ToUnitVector();
-            return new Coordinate2D(X + unitVec.X, Y + unitVec.Y);
-        }
-    }
 }
