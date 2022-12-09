@@ -1,4 +1,5 @@
-﻿using AdventOfCode.Models;
+﻿using System.Diagnostics;
+using AdventOfCode.Models;
 
 namespace AdventOfCode;
 
@@ -21,6 +22,7 @@ public sealed class Day09 : CustomDirBaseDay
     private void DrawGrid(Vector2Int head, Vector2Int tail, int xMax, int yMax)
     {
         Console.WriteLine("=======");
+        Console.WriteLine($"head={head}, tail={tail}");
         for (var y = yMax - 1; y >= 0; y--)
         {
             for (var x = 0; x < xMax; x++)
@@ -46,8 +48,7 @@ public sealed class Day09 : CustomDirBaseDay
         foreach (var move in movements)
             for (var i = 0; i < move.Magnitude; i++)
             {
-                // Console.WriteLine($"head={h}, tail={t}");
-                // DrawGrid(h, t, 5, 5);
+                if (Debugger.IsAttached) DrawGrid(ropeCoordinates[0], ropeCoordinates[^1], 25, 25);
                 seen.Add(ropeCoordinates[^1]);
 
                 ropeCoordinates[0] = ropeCoordinates[0].ToDirection(move.D);
