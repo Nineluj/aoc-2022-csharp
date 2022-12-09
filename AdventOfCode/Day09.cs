@@ -19,6 +19,9 @@ public sealed class Day09 : CustomDirBaseDay
             );
     }
 
+    /// <summary>
+    ///     For debugging purposes, print the grid
+    /// </summary>
     private void DrawGrid(Vector2Int head, Vector2Int tail, int xMax, int yMax)
     {
         Console.WriteLine("=======");
@@ -71,7 +74,6 @@ public sealed class Day09 : CustomDirBaseDay
     public override ValueTask<string> Solve_2()
     {
         var result = SimulateMovements(GetMovements(_input), 10).Count;
-
         return new ValueTask<string>(result.ToString());
     }
 
@@ -80,24 +82,8 @@ public sealed class Day09 : CustomDirBaseDay
     {
         var delta = other.Diff(origin);
         if (WithinNoPullRange(delta)) return origin;
-
-        if (delta.X == 0)
-            return delta.Y switch
-            {
-                > 0 => origin with { Y = origin.Y + 1 },
-                < 0 => origin with { Y = origin.Y - 1 },
-                _ => throw new ArgumentOutOfRangeException()
-            };
-        if (delta.Y == 0)
-            return delta.X switch
-            {
-                > 0 => origin with { X = origin.X + 1 },
-                < 0 => origin with { X = origin.X - 1 },
-                _ => throw new ArgumentOutOfRangeException()
-            };
-
-        var unitVec = delta.ToUnitVector();
-        return new Vector2Int(origin.X + unitVec.X, origin.Y + unitVec.Y);
+        var vectorDiff = delta.ToManhattanUnitVector();
+        return new Vector2Int(origin.X + vectorDiff.X, origin.Y + vectorDiff.Y);
     }
 
 

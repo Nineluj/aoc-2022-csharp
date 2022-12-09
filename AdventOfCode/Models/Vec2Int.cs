@@ -19,8 +19,12 @@ public record Vector2Int(int X, int Y)
         return new Vector2Int(X - other.X, Y - other.Y);
     }
 
-    public Vector2Int ToUnitVector()
+    /// <summary>
+    ///     Get the Manhattan distance version of this vector, ie the move which is at
+    ///     most 1 North/South and 1 East/West in the direction of the original vector.
+    /// </summary>
+    public Vector2Int ToManhattanUnitVector()
     {
-        return new Vector2Int(X / Math.Abs(X), Y / Math.Abs(Y));
+        return new Vector2Int(X == 0 ? 0 : X / Math.Abs(X), Y == 0 ? 0 : Y / Math.Abs(Y));
     }
 }
