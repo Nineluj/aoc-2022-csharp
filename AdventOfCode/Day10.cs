@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode;
+﻿using System.Text;
+
+namespace AdventOfCode;
 
 public sealed class Day10 : CustomDirBaseDay
 {
@@ -9,26 +11,26 @@ public sealed class Day10 : CustomDirBaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    private IEnumerable<CathodeInstruction> ParseInstructions(string input)
+    private static List<CathodeInstruction> ParseInstructions(string input)
     {
         return Utils.GetLines(input).Select<string, CathodeInstruction>(line =>
         {
             if (line.StartsWith("noop")) return new NoopInstruction();
             if (line.StartsWith("addx")) return new AddXInstruction(int.Parse(line[5..]));
             throw new ArgumentException($"Unsupported instruction: {line}");
-        });
+        }).ToList();
     }
 
-    private int SimulateInstructions(List<CathodeInstruction> instructions, ICollection<int> snapshotCycles)
+
+    private void SimulateInstructions(List<CathodeInstruction> instructions, Action<int, int> fn, int cycleMax)
     {
-        var signalSum = 0;
         var instructionIndex = -1;
         var register = 1;
 
         CathodeInstruction pendingInstruction = new NoopInstruction();
         var timeLeftForInstruction = 0;
 
-        for (var cycle = 1; cycle <= snapshotCycles.Max(); cycle++)
+        for (var cycle = 1; cycle <= cycleMax; cycle++)
         {
             if (timeLeftForInstruction == 0)
             {
@@ -39,30 +41,37 @@ public sealed class Day10 : CustomDirBaseDay
             }
 
             timeLeftForInstruction -= 1;
-
-            if (snapshotCycles.Contains(cycle))
-                // Console.WriteLine($"{cycle}: register {register}, signal strength {register * cycle}");
-                signalSum += register * cycle;
+            fn(cycle, register);
         }
-
-        return signalSum;
     }
 
     public override ValueTask<string> Solve_1()
     {
         var instructions = ParseInstructions(_input);
-        var result = SimulateInstructions(
-            instructions.ToList(), new HashSet<int> { 20, 60, 100, 140, 180, 220 });
-        return new ValueTask<string>(result.ToString());
+        var signalSum = 0;
+
+        void SnapshotFn(int cycle, int register)
+        {
+            if ((cycle - 20) % 40 == 0) signalSum += cycle * register;
+        }
+
+        SimulateInstructions(
+            instructions, SnapshotFn, 220);
+        return new ValueTask<string>(signalSum.ToString());
     }
 
     public override ValueTask<string> Solve_2()
     {
-        var result = "";
+        var instructions = ParseInstructions(_input);
         var crt = new CRTEmulator();
-        crt.DrawCRT();
-        throw new NotImplementedException();
-        // return new ValueTask<string>(result.ToString());
+
+        void DrawToCRTFn(int cycle, int register)
+        {
+            if (Math.Abs(cycle - register) <= 1) crt.DrawAt(cycle);
+        }
+
+        SimulateInstructions(instructions, DrawToCRTFn, 240);
+        return new ValueTask<string>(crt.GetCRTDrawing());
     }
 
     private abstract class CathodeInstruction
@@ -107,30 +116,35 @@ public sealed class Day10 : CustomDirBaseDay
 
     private class CRTEmulator
     {
-        private readonly char[,] _data;
-        private readonly int CRTHeight = 6;
-        private readonly int CRTWidth = 40;
+        private const int CRTHeight = 6;
+        private const int CRTWidth = 40;
+        private readonly char[] _data;
 
         public CRTEmulator()
         {
-            _data = new char[CRTHeight, CRTWidth];
-            for (var y = 0; y < _data.GetLength(0); y++)
-            for (var x = 0; x < _data.GetLength(1); x++)
-                _data[y, x] = '.';
+            _data = new char[CRTHeight * CRTWidth];
+            for (var i = 0; i < _data.Length; i++) _data[i] = '.';
         }
 
-        public void DrawCRT()
+        public void DrawAt(int index)
         {
+            _data[index - 1] = '#';
+        }
+
+        public string GetCRTDrawing()
+        {
+            var sb = new StringBuilder();
             var delimiter = new string('=', 45);
-            Console.WriteLine(delimiter);
-            Console.WriteLine("CRT");
-            for (var y = 0; y < _data.GetLength(0); y++)
+            sb.AppendLine(delimiter);
+            sb.AppendLine("CRT");
+            for (var y = 0; y < CRTHeight; y++)
             {
-                for (var x = 0; x < _data.GetLength(1); x++) Console.Write(_data[y, x]);
-                Console.WriteLine("");
+                for (var x = 0; x < CRTWidth; x++) sb.Append(_data[y * CRTHeight + x]);
+                sb.AppendLine();
             }
 
-            Console.WriteLine(delimiter);
+            sb.AppendLine(delimiter);
+            return sb.ToString();
         }
     }
 }
