@@ -28,4 +28,10 @@ public static class Utils
     {
         return regexp.Match(text).Groups.Values.Skip(1).Select(g => g.Value);
     }
+
+    public static T EnumeratorGetNext<T>(IEnumerator<T> list)
+    {
+        list.MoveNext();
+        return list.Current;
+    }
 }

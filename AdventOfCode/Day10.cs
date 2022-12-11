@@ -22,26 +22,33 @@ public sealed class Day10 : CustomDirBaseDay
     }
 
 
-    private void SimulateInstructions(List<CathodeInstruction> instructions, Action<int, int> fn, int cycleMax)
+    private void SimulateInstructions(IEnumerable<CathodeInstruction> instructions, Action<int, int> action,
+        int cycleMax)
     {
-        var instructionIndex = -1;
         var register = 1;
 
         CathodeInstruction pendingInstruction = new NoopInstruction();
+        CathodeInstruction currentInstruction = new NoopInstruction();
         var timeLeftForInstruction = 0;
 
+        using var instructionEnumerator = instructions.GetEnumerator();
         for (var cycle = 1; cycle <= cycleMax; cycle++)
         {
+            // start
             if (timeLeftForInstruction == 0)
             {
-                register += pendingInstruction.GetIncrement();
-                instructionIndex++;
-                pendingInstruction = instructions[instructionIndex];
+                currentInstruction = pendingInstruction;
+                pendingInstruction = Utils.EnumeratorGetNext(instructionEnumerator);
                 timeLeftForInstruction = pendingInstruction.GetCyclesRequiredToComplete();
             }
 
+            // during 
+            register += currentInstruction.GetIncrement();
+            action(cycle, register);
+
+            // after
+            currentInstruction = new NoopInstruction();
             timeLeftForInstruction -= 1;
-            fn(cycle, register);
         }
     }
 
@@ -55,8 +62,8 @@ public sealed class Day10 : CustomDirBaseDay
             if ((cycle - 20) % 40 == 0) signalSum += cycle * register;
         }
 
-        SimulateInstructions(
-            instructions, SnapshotFn, 220);
+        // SimulateInstructions(
+        // instructions, SnapshotFn, 220);
         return new ValueTask<string>(signalSum.ToString());
     }
 
@@ -64,13 +71,7 @@ public sealed class Day10 : CustomDirBaseDay
     {
         var instructions = ParseInstructions(_input);
         var crt = new CRTEmulator();
-
-        void DrawToCRTFn(int cycle, int register)
-        {
-            if (Math.Abs(cycle - register) <= 1) crt.DrawAt(cycle);
-        }
-
-        SimulateInstructions(instructions, DrawToCRTFn, 240);
+        SimulateInstructions(instructions, crt.DrawAt, 240);
         return new ValueTask<string>(crt.GetCRTDrawing());
     }
 
@@ -118,17 +119,22 @@ public sealed class Day10 : CustomDirBaseDay
     {
         private const int CRTHeight = 6;
         private const int CRTWidth = 40;
-        private readonly char[] _data;
+        private readonly char[,] _data;
 
         public CRTEmulator()
         {
-            _data = new char[CRTHeight * CRTWidth];
-            for (var i = 0; i < _data.Length; i++) _data[i] = '.';
+            _data = new char[CRTHeight, CRTWidth];
+            for (var y = 0; y < _data.GetLength(0); y++)
+            for (var x = 0; x < _data.GetLength(1); x++)
+                _data[y, x] = '.';
         }
 
-        public void DrawAt(int index)
+        public void DrawAt(int cycle, int register)
         {
-            _data[index - 1] = '#';
+            var zeroIndexedCycle = cycle - 1;
+            var drawPos = zeroIndexedCycle % 40;
+            var row = zeroIndexedCycle / 40;
+            if (Math.Abs(drawPos - register) <= 1) _data[row, drawPos] = '#';
         }
 
         public string GetCRTDrawing()
@@ -139,7 +145,7 @@ public sealed class Day10 : CustomDirBaseDay
             sb.AppendLine("CRT");
             for (var y = 0; y < CRTHeight; y++)
             {
-                for (var x = 0; x < CRTWidth; x++) sb.Append(_data[y * CRTHeight + x]);
+                for (var x = 0; x < CRTWidth; x++) sb.Append(_data[y, x]);
                 sb.AppendLine();
             }
 
