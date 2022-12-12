@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Numerics;
+using System.Text.RegularExpressions;
 
 namespace AdventOfCode;
 
@@ -11,7 +12,9 @@ public sealed class Day11 : CustomDirBaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    private Func<int, int> GetOperation(List<string> operationData)
+    // I had to bump this to long instead of int since even with the modulo
+    // trick the square was causing an overflow for int(32)
+    private Func<long, long> GetOperation(List<string> operationData)
     {
         if (operationData[1] == "old")
             return operationData[0] switch
@@ -67,6 +70,7 @@ public sealed class Day11 : CustomDirBaseDay
             var test = monkeyTests[i];
             monkeys[i].SetThrowPreference(new ThrowPreference(
                 x => x % test.Item1 == 0,
+                test.Item1,
                 monkeys[test.Item2],
                 monkeys[test.Item3]
             ));
@@ -75,70 +79,80 @@ public sealed class Day11 : CustomDirBaseDay
         return monkeys;
     }
 
-    private int CalculateMonkeyBusiness(List<Monkey> monkeys, int numRounds)
+    private BigInteger CalculateMonkeyBusiness(List<Monkey> monkeys, int numRounds, bool isCalmedAfterHandling)
     {
+        var monkeyTestLCM = monkeys
+            .Select(m => m.ThrowPreference.DivisibleByNumber)
+            .Aggregate((a, b) => a * b);
+
         for (var i = 0; i < numRounds; i++)
             foreach (var monkey in monkeys)
-                monkey.TakeTurn();
+                monkey.TakeTurn(isCalmedAfterHandling, monkeyTestLCM);
 
-        return monkeys.Select(m => m.InspectionCount).OrderByDescending(x => x).Take(2).Aggregate((a, b) => a * b);
+        return monkeys
+            .Select(m => new BigInteger(m.InspectionCount))
+            .OrderByDescending(x => x)
+            .Take(2)
+            .Aggregate((a, b) => a * b);
     }
 
     public override ValueTask<string> Solve_1()
     {
         var monkeys = ParseMonkeys(_input);
-        var result = CalculateMonkeyBusiness(monkeys, 20);
+        var result = CalculateMonkeyBusiness(monkeys, 20, true);
         return new ValueTask<string>(result.ToString());
     }
 
     public override ValueTask<string> Solve_2()
     {
-        var result = "";
-        throw new NotImplementedException();
-        // return new ValueTask<string>(result.ToString());
+        var monkeys = ParseMonkeys(_input);
+        var result = CalculateMonkeyBusiness(monkeys, 10_000, false);
+        return new ValueTask<string>(result.ToString());
     }
 
     private class Item
     {
-        public int WorryLevel;
+        public long WorryLevel;
 
         public Item(int worryLevel)
         {
             WorryLevel = worryLevel;
         }
 
-        public void HandleMonkeyHandling(Func<int, int> operation)
+        public void HandleMonkeyHandling(Func<long, long> operation, bool isCalmedAfterHandling, int monkeyTestLCM)
         {
             var duringHandling = operation(WorryLevel);
-            var afterHandling = Convert.ToInt32(Math.Floor(duringHandling / 3.0));
-            WorryLevel = afterHandling;
+            var newWorryLevel = isCalmedAfterHandling
+                ? Convert.ToInt32(Math.Floor(duringHandling / 3.0))
+                : duringHandling % monkeyTestLCM;
+            WorryLevel = newWorryLevel;
         }
     }
 
-    private record ThrowPreference(Func<int, bool> Cond, Monkey TrueTarget, Monkey FalseTarget);
+    private record ThrowPreference(Func<long, bool> Cond, int DivisibleByNumber, Monkey TrueTarget, Monkey FalseTarget);
 
     private class Monkey
     {
         private readonly Queue<Item> _items;
-        private readonly Func<int, int> _operation;
-        private string _monkeyId;
-        private ThrowPreference _throwPreference;
+        private readonly Func<long, long> _operation;
+        public readonly string Name;
 
         public int InspectionCount;
+        public ThrowPreference ThrowPreference;
 
         public Monkey(
-            string monkeyId,
+            string name,
             IEnumerable<Item> startItems,
-            Func<int, int> operation)
+            Func<long, long> operation)
         {
+            Name = name;
             _items = new Queue<Item>(startItems);
             _operation = operation;
-            _monkeyId = monkeyId;
         }
 
         public void SetThrowPreference(ThrowPreference throwPreference)
         {
-            _throwPreference = throwPreference;
+            ThrowPreference = throwPreference;
         }
 
         private void ReceiveItem(Item item)
@@ -146,12 +160,12 @@ public sealed class Day11 : CustomDirBaseDay
             _items.Enqueue(item);
         }
 
-        public void TakeTurn()
+        public void TakeTurn(bool isCalmedAfterHandling, int monkeyTestLCM)
         {
             // inspect items
             foreach (var item in _items)
             {
-                item.HandleMonkeyHandling(_operation);
+                item.HandleMonkeyHandling(_operation, isCalmedAfterHandling, monkeyTestLCM);
                 InspectionCount++;
             }
 
@@ -159,9 +173,9 @@ public sealed class Day11 : CustomDirBaseDay
             while (_items.Any())
             {
                 var item = _items.Dequeue();
-                var target = _throwPreference.Cond(item.WorryLevel)
-                    ? _throwPreference.TrueTarget
-                    : _throwPreference.FalseTarget;
+                var target = ThrowPreference.Cond(item.WorryLevel)
+                    ? ThrowPreference.TrueTarget
+                    : ThrowPreference.FalseTarget;
                 target.ReceiveItem(item);
             }
         }
