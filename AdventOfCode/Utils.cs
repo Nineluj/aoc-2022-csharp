@@ -34,4 +34,15 @@ public static class Utils
         list.MoveNext();
         return list.Current;
     }
+
+    // thanks to: https://stackoverflow.com/a/44626295
+    public static IEnumerable<T> Slice<T>(this List<T> source, int from, int to)
+    {
+        return source.GetRange(from, to - from);
+    }
+
+    public static IEnumerable<T> Slice<T>(this List<T> source, int from)
+    {
+        return source.GetRange(from, source.Count - from);
+    }
 }
