@@ -22,7 +22,7 @@ public sealed class Day10 : CustomDirBaseDay
     }
 
 
-    private void SimulateInstructions(IEnumerable<CathodeInstruction> instructions, Action<int, int> action,
+    public void SimulateInstructions(IEnumerable<CathodeInstruction> instructions, Action<int, int> action,
         int cycleMax)
     {
         var register = 1;
@@ -62,8 +62,8 @@ public sealed class Day10 : CustomDirBaseDay
             if ((cycle - 20) % 40 == 0) signalSum += cycle * register;
         }
 
-        // SimulateInstructions(
-        // instructions, SnapshotFn, 220);
+        SimulateInstructions(
+            instructions, SnapshotFn, 220);
         return new ValueTask<string>(signalSum.ToString());
     }
 
@@ -75,13 +75,13 @@ public sealed class Day10 : CustomDirBaseDay
         return new ValueTask<string>(crt.GetCRTDrawing());
     }
 
-    private abstract class CathodeInstruction
+    public abstract class CathodeInstruction
     {
         public abstract int GetCyclesRequiredToComplete();
         public abstract int GetIncrement();
     }
 
-    private class NoopInstruction : CathodeInstruction
+    public class NoopInstruction : CathodeInstruction
     {
         public override int GetCyclesRequiredToComplete()
         {
@@ -94,7 +94,7 @@ public sealed class Day10 : CustomDirBaseDay
         }
     }
 
-    private class AddXInstruction : CathodeInstruction
+    public class AddXInstruction : CathodeInstruction
     {
         private readonly int _x;
 
@@ -115,7 +115,7 @@ public sealed class Day10 : CustomDirBaseDay
     }
 
 
-    private class CRTEmulator
+    public class CRTEmulator
     {
         private const int CRTHeight = 6;
         private const int CRTWidth = 40;
