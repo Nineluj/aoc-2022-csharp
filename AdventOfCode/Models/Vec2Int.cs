@@ -2,6 +2,10 @@
 
 public record Vector2Int(int X, int Y)
 {
+    public static Vector2Int DownPosY = new(0, 1);
+    public static Vector2Int Right = new(1, 0);
+
+
     public Vector2Int ToDirection(Direction d)
     {
         return d switch
@@ -14,9 +18,14 @@ public record Vector2Int(int X, int Y)
         };
     }
 
-    public Vector2Int Diff(Vector2Int other)
+    public static Vector2Int operator -(Vector2Int a, Vector2Int b)
     {
-        return new Vector2Int(X - other.X, Y - other.Y);
+        return new(a.X - b.X, a.Y - b.Y);
+    }
+
+    public static Vector2Int operator +(Vector2Int a, Vector2Int b)
+    {
+        return new(a.X + b.X, a.Y + b.Y);
     }
 
     /// <summary>

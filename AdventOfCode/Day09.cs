@@ -80,7 +80,7 @@ public sealed class Day09 : CustomDirBaseDay
 
     private Vector2Int PullTowards(Vector2Int origin, Vector2Int other)
     {
-        var delta = other.Diff(origin);
+        var delta = other - origin;
         if (WithinNoPullRange(delta)) return origin;
         var vectorDiff = delta.ToManhattanUnitVector();
         return new Vector2Int(origin.X + vectorDiff.X, origin.Y + vectorDiff.Y);
