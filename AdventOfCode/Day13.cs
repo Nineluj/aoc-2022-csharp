@@ -129,9 +129,15 @@ public sealed class Day13 : CustomDirBaseDay
 
     public override ValueTask<string> Solve_2()
     {
-        var result = "";
-        throw new NotImplementedException();
-        // return new ValueTask<string>(result.ToString());
+        var packets = Utils.GetLines(_input).Select(ParsePacket).ToList();
+        var dividerPacket1 = ParsePacket("[[2]]");
+        var dividerPacket2 = ParsePacket("[[6]]");
+        packets.Add(dividerPacket1);
+        packets.Add(dividerPacket2);
+        packets.Sort((a, b) => IsPairRightOrderedBool(a, b) ? -1 : 1);
+        // I hate one indexing
+        var result = (1 + packets.IndexOf(dividerPacket1)) * (1 + packets.IndexOf(dividerPacket2));
+        return new ValueTask<string>(result.ToString());
     }
 
     public interface IPacket
