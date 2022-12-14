@@ -2,6 +2,13 @@
 
 public sealed class Day13 : CustomDirBaseDay
 {
+    public enum Ordered
+    {
+        True,
+        False,
+        Unknown
+    }
+
     private readonly string _input;
 
     public Day13()
@@ -75,23 +82,22 @@ public sealed class Day13 : CustomDirBaseDay
             var emptyL1 = !l1.Content.Any();
             var emptyL2 = !l2.Content.Any();
 
+            if (emptyL1 && emptyL2) return Ordered.Unknown;
             if (emptyL1) return Ordered.True;
-            if (emptyL2) return Ordered.False; // must be false if L1 is non-empty
+            if (emptyL2) return Ordered.False;
 
             var firstItemsOrdering = IsPairRightOrdered(l1.Content[0], l2.Content[0]);
-            if (firstItemsOrdering == Ordered.False) return Ordered.False;
+            if (firstItemsOrdering != Ordered.Unknown) return firstItemsOrdering;
 
             var l1Remain = l1.Content.Slice(1).ToList();
             var l2Remain = l2.Content.Slice(1).ToList();
-
-            if (firstItemsOrdering == Ordered.True && l2Remain.Count == 0) return Ordered.True;
 
             l1 = new PacketList(l1Remain);
             l2 = new PacketList(l2Remain);
         }
     }
 
-    private static Ordered IsPairRightOrdered(IPacket p1, IPacket p2)
+    public static Ordered IsPairRightOrdered(IPacket p1, IPacket p2)
     {
         return p1 switch
         {
@@ -107,25 +113,17 @@ public sealed class Day13 : CustomDirBaseDay
         };
     }
 
-    private static bool IsPairRightOrderedBool(IPacket p1, IPacket p2)
+    public static bool IsPairRightOrderedBool(IPacket p1, IPacket p2)
     {
-        return IsPairRightOrdered(p1, p2) == Ordered.True;
+        return IsPairRightOrdered(p1, p2) != Ordered.False;
     }
 
     public override ValueTask<string> Solve_1()
     {
-        var pairs = GetPairs(_input);
-
-        // foreach (var pp in pairs)
-        // {
-        //     Console.WriteLine(IsPairRightOrderedBool(pp.Item1, pp.Item2) ? $"Yes: {pp}" : $"no: {pp}");
-        // }
-
+        var pairs = GetPairs(_input).ToList();
         var result = pairs
-                .Select((pp, i) => IsPairRightOrderedBool(pp.Item1, pp.Item2) ? i + 1 : 0)
-            // .Sum()
-            ;
-        return new ValueTask<string>(string.Join(",", result));
+            .Select((pp, i) => IsPairRightOrderedBool(pp.Item1, pp.Item2) ? i + 1 : 0)
+            .Sum();
         return new ValueTask<string>(result.ToString());
     }
 
@@ -134,13 +132,6 @@ public sealed class Day13 : CustomDirBaseDay
         var result = "";
         throw new NotImplementedException();
         // return new ValueTask<string>(result.ToString());
-    }
-
-    private enum Ordered
-    {
-        True,
-        False,
-        Unknown
     }
 
     public interface IPacket
