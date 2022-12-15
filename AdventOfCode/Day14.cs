@@ -26,8 +26,12 @@ public sealed class Day14 : CustomDirBaseDay
 
     public override ValueTask<string> Solve_2()
     {
-        var result = "";
         throw new NotImplementedException();
+        // var sim = new SandSimulator(_input);
+        // sim.AddFloorSegment();
+        // while (!sim.IsSimulationDoneV2())
+        //     sim.Tick();
+        // var result = sim.GetMaterialCount(Material.Sand);
         // return new ValueTask<string>(result.ToString());
     }
 
@@ -72,6 +76,14 @@ public sealed class Day14 : CustomDirBaseDay
             }
         }
 
+        public void AddFloorSegment()
+        {
+            var segmentStart = new Vector2Int(_xMin - 100, _yMax + 2);
+            var segmentEnd = new Vector2Int(_xMax + 100, _yMax + 2);
+            foreach (var point in GetPointsInSegments(new List<Vector2Int> { segmentStart, segmentEnd }))
+                _collisionItems.Add(point, Material.Stone);
+        }
+
         private List<Vector2Int> GetPointsInSegments(IEnumerable<Vector2Int> segments)
         {
             var segmentList = segments.ToList();
@@ -109,9 +121,13 @@ public sealed class Day14 : CustomDirBaseDay
             return _gameState == State.Done;
         }
 
+        public bool IsSimulationDoneV2()
+        {
+            return _collisionItems.ContainsKey(_sandSpawnPos);
+        }
+
         public void Tick()
         {
-            if (IsSimulationDone()) return;
             var down = _currentSand + Vector2Int.DownPosY;
             var downRight = _currentSand + Vector2Int.DownPosY + Vector2Int.Right;
             var downLeft = _currentSand + Vector2Int.DownPosY - Vector2Int.Right;
@@ -123,7 +139,6 @@ public sealed class Day14 : CustomDirBaseDay
                     if (_currentSand.Y > _yMax)
                     {
                         _gameState = State.Done;
-                        Console.WriteLine("DONE!");
                     }
 
                     return;
