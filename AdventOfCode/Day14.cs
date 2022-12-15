@@ -18,25 +18,32 @@ public sealed class Day14 : CustomDirBaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    public override async ValueTask<string> Solve_1()
+    public override ValueTask<string> Solve_1()
     {
         var game = Create(_input, false);
         RunToCompletion(game, (state, coord) =>
             coord.Y > state.YMax
         );
         var result = GetMaterialCount(game, Material.Sand);
-        return result.ToString();
+        return ValueTask.FromResult(result.ToString());
     }
 
     public override ValueTask<string> Solve_2()
     {
-        throw new NotImplementedException();
-        // var sim = new SandSimulator(_input);
-        // sim.AddFloorSegment();
-        // while (!sim.IsSimulationDoneV2())
-        //     sim.Tick();
-        // var result = sim.GetMaterialCount(Material.Sand);
-        // return new ValueTask<string>(result.ToString());
+        var game = Create(_input, false);
+        AddFloorSegment(game);
+        try
+        {
+            // rely on catching an exception here instead of checking for a condition
+            // since the method will error when the initial (desired) spot is filled
+            RunToCompletion(game, (_, _) => false);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        var result = GetMaterialCount(game, Material.Sand);
+        return ValueTask.FromResult(result.ToString());
     }
 
     private static int GetMaterialCount(GameState state, Material m)
@@ -78,8 +85,8 @@ public sealed class Day14 : CustomDirBaseDay
 
     private static void AddFloorSegment(GameState state)
     {
-        var segmentStart = new Vector2Int(state.XMin - 100, state.YMax + 2);
-        var segmentEnd = new Vector2Int(state.XMax + 100, state.YMax + 2);
+        var segmentStart = new Vector2Int(state.XMin - 500, state.YMax + 2);
+        var segmentEnd = new Vector2Int(state.XMax + 500, state.YMax + 2);
         foreach (var point in GetPointsInSegments(new List<Vector2Int> { segmentStart, segmentEnd }))
             state.CollisionMaterials.Add(point, Material.Stone);
     }
@@ -107,7 +114,8 @@ public sealed class Day14 : CustomDirBaseDay
     {
         var state = initial;
         var validPositions = new LinkedList<Vector2Int>();
-        var curr = _sandStartingPosition;
+        validPositions.AddLast(_sandStartingPosition);
+        var curr = _sandStartingPosition + Vector2Int.PosY;
 
         while (true)
         {
