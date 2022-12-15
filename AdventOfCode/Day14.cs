@@ -4,7 +4,14 @@ namespace AdventOfCode;
 
 public sealed class Day14 : CustomDirBaseDay
 {
+    public enum Material
+    {
+        Sand = 'o',
+        Stone = '#'
+    }
+
     private readonly string _input;
+    private readonly Vector2Int _sandStartingPosition = new(500, 0);
 
     public Day14()
     {
@@ -13,14 +20,11 @@ public sealed class Day14 : CustomDirBaseDay
 
     public override async ValueTask<string> Solve_1()
     {
-        var sim = new SandSimulator(_input);
-        while (!sim.IsSimulationDone())
-            // sim.Draw();
-            sim.Tick();
-        // Console.ReadKey();
-        // Console.WriteLine();
-        // Console.WriteLine("DONE!!");
-        var result = sim.GetMaterialCount(Material.Sand);
+        var game = Create(_input, false);
+        RunToCompletion(game, (state, coord) =>
+            coord.Y > state.YMax
+        );
+        var result = GetMaterialCount(game, Material.Sand);
         return result.ToString();
     }
 
@@ -35,144 +39,130 @@ public sealed class Day14 : CustomDirBaseDay
         // return new ValueTask<string>(result.ToString());
     }
 
-    private enum Material
+    private static int GetMaterialCount(GameState state, Material m)
     {
-        Sand = 'o',
-        Stone = '#'
+        return state.CollisionMaterials.Count(pair => pair.Value == m);
     }
 
-    private class SandSimulator
+    private static List<Vector2Int> GetPointsInSegments(IEnumerable<Vector2Int> segments)
     {
-        public enum State
+        var segmentList = segments.ToList();
+        var points = new List<Vector2Int>();
+        var curr = segmentList[0];
+
+        foreach (var point in segmentList.Slice(1))
         {
-            Running,
-            Done
-        }
-
-        private readonly Dictionary<Vector2Int, Material> _collisionItems;
-        private readonly Vector2Int _sandSpawnPos = new(500, 0);
-        private readonly int _xMax;
-
-        private readonly int _xMin;
-        private readonly int _yMax;
-        private Vector2Int _currentSand;
-
-        private State _gameState;
-
-        public SandSimulator(string input)
-        {
-            _gameState = State.Running;
-            _currentSand = _sandSpawnPos;
-            _xMin = int.MaxValue;
-            _xMax = int.MinValue;
-            _yMax = int.MinValue;
-            _collisionItems = new Dictionary<Vector2Int, Material>();
-            foreach (var point in ParseInput(input).SelectMany(x => x))
+            var toNext = (point - curr).ToManhattanUnitVector();
+            while (curr != point)
             {
-                _collisionItems[point] = Material.Stone;
-                if (point.X < _xMin) _xMin = point.X;
-                if (point.X > _xMax) _xMax = point.X;
-                if (point.Y > _yMax) _yMax = point.Y;
+                points.Add(curr);
+                curr += toNext;
             }
         }
 
-        public void AddFloorSegment()
-        {
-            var segmentStart = new Vector2Int(_xMin - 100, _yMax + 2);
-            var segmentEnd = new Vector2Int(_xMax + 100, _yMax + 2);
-            foreach (var point in GetPointsInSegments(new List<Vector2Int> { segmentStart, segmentEnd }))
-                _collisionItems.Add(point, Material.Stone);
-        }
+        points.Add(segmentList[^1]);
+        return points;
+    }
 
-        private List<Vector2Int> GetPointsInSegments(IEnumerable<Vector2Int> segments)
-        {
-            var segmentList = segments.ToList();
-            var points = new List<Vector2Int>();
-            var curr = segmentList[0];
-
-            foreach (var point in segmentList.Slice(1))
-            {
-                var toNext = (point - curr).ToManhattanUnitVector();
-                while (curr != point)
+    private static IEnumerable<IEnumerable<Vector2Int>> ParseInput(string input)
+    {
+        return Utils.GetLines(input)
+            .Select(line =>
+                line.Split(" -> ").Select(coordString =>
                 {
-                    points.Add(curr);
-                    curr += toNext;
-                }
-            }
+                    var parts = coordString.Split(',', 2);
+                    return new Vector2Int(int.Parse(parts[0]), int.Parse(parts[1]));
+                }))
+            .Select(GetPointsInSegments);
+    }
 
-            points.Add(segmentList[^1]);
-            return points;
+    private static void AddFloorSegment(GameState state)
+    {
+        var segmentStart = new Vector2Int(state.XMin - 100, state.YMax + 2);
+        var segmentEnd = new Vector2Int(state.XMax + 100, state.YMax + 2);
+        foreach (var point in GetPointsInSegments(new List<Vector2Int> { segmentStart, segmentEnd }))
+            state.CollisionMaterials.Add(point, Material.Stone);
+    }
+
+    private GameState Create(string input, bool addFloor)
+    {
+        var xMin = int.MaxValue;
+        var xMax = int.MinValue;
+        var yMax = int.MinValue;
+        var collisionItems = new Dictionary<Vector2Int, Material>();
+        foreach (var point in ParseInput(input).SelectMany(x => x))
+        {
+            collisionItems[point] = Material.Stone;
+            if (point.X < xMin) xMin = point.X;
+            if (point.X > xMax) xMax = point.X;
+            if (point.Y > yMax) yMax = point.Y;
         }
 
-        private IEnumerable<IEnumerable<Vector2Int>> ParseInput(string input)
-        {
-            return Utils.GetLines(input)
-                .Select(line =>
-                    line.Split(" -> ").Select(coordString =>
-                    {
-                        var parts = coordString.Split(',', 2);
-                        return new Vector2Int(int.Parse(parts[0]), int.Parse(parts[1]));
-                    }))
-                .Select(GetPointsInSegments);
-        }
+        var state = new GameState(collisionItems, xMin, xMax, yMax);
+        if (addFloor) AddFloorSegment(state);
+        return state;
+    }
 
-        public bool IsSimulationDone()
-        {
-            return _gameState == State.Done;
-        }
+    private void RunToCompletion(GameState initial, Func<GameState, Vector2Int, bool> completedFn)
+    {
+        var state = initial;
+        var validPositions = new LinkedList<Vector2Int>();
+        var curr = _sandStartingPosition;
 
-        public bool IsSimulationDoneV2()
+        while (true)
         {
-            return _collisionItems.ContainsKey(_sandSpawnPos);
-        }
+            if (completedFn(state, curr)) return;
 
-        public void Tick()
-        {
-            var down = _currentSand + Vector2Int.DownPosY;
-            var downRight = _currentSand + Vector2Int.DownPosY + Vector2Int.Right;
-            var downLeft = _currentSand + Vector2Int.DownPosY - Vector2Int.Right;
+            var down = curr + Vector2Int.PosY;
+            var downRight = down + Vector2Int.PosX;
+            var downLeft = down - Vector2Int.PosX;
 
+            var foundMatch = false;
             foreach (var candidate in new[] { down, downLeft, downRight })
-                if (!_collisionItems.ContainsKey(candidate))
+                if (!state.CollisionMaterials.ContainsKey(candidate))
                 {
-                    _currentSand = candidate;
-                    if (_currentSand.Y > _yMax)
-                    {
-                        _gameState = State.Done;
-                    }
-
-                    return;
+                    validPositions.AddLast(curr);
+                    curr = candidate;
+                    foundMatch = true;
+                    break;
                 }
 
-
-            _collisionItems.Add(_currentSand, Material.Sand);
-            _currentSand = _sandSpawnPos;
-        }
-
-        public int GetMaterialCount(Material m)
-        {
-            return _collisionItems.Count(pair => pair.Value.Equals(m));
-        }
-
-        public void Draw()
-        {
-            Console.Clear();
-
-            for (var y = 0; y <= _yMax; y++)
+            if (!foundMatch)
             {
-                for (var x = _xMin; x <= _xMax; x++)
-                {
-                    var coord = new Vector2Int(x, y);
-                    if (coord.Equals(_sandSpawnPos)) Console.Write('+');
-                    else if (_collisionItems.TryGetValue(coord, out var material)) Console.Write((char)material);
-                    else if (coord.Equals(_currentSand)) Console.Write('o');
-                    else Console.Write('.');
-                }
-
-                Console.WriteLine();
+                state.CollisionMaterials.Add(curr, Material.Sand);
+                // if we can't move anywhere, mark the current spot as a collision spot
+                // and continue from the last valid position
+                curr = validPositions.Last();
+                validPositions.RemoveLast();
             }
 
-            Console.WriteLine($"Sand at: {_currentSand}");
+            // Draw(state, curr);
+            // Console.WriteLine(curr);
         }
     }
+
+    public void Draw(GameState gs, Vector2Int current)
+    {
+        Console.Clear();
+
+        for (var y = 0; y <= gs.YMax; y++)
+        {
+            for (var x = gs.XMin; x <= gs.XMax; x++)
+            {
+                var coord = new Vector2Int(x, y);
+                if (coord.Equals(_sandStartingPosition)) Console.Write('+');
+                else if (gs.CollisionMaterials.TryGetValue(coord, out var material)) Console.Write((char)material);
+                else if (coord.Equals(current)) Console.Write('$');
+                else Console.Write('.');
+            }
+
+            Console.WriteLine();
+        }
+
+        Console.WriteLine($"Currently at {current}");
+    }
+
+    public record GameState(
+        Dictionary<Vector2Int, Material> CollisionMaterials,
+        int XMin, int XMax, int YMax);
 }

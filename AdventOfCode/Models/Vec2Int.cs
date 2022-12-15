@@ -2,8 +2,8 @@
 
 public record Vector2Int(int X, int Y)
 {
-    public static Vector2Int DownPosY = new(0, 1);
-    public static Vector2Int Right = new(1, 0);
+    public static Vector2Int PosY = new(0, 1);
+    public static Vector2Int PosX = new(1, 0);
 
 
     public Vector2Int ToDirection(Direction d)
