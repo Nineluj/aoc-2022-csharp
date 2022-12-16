@@ -25,7 +25,20 @@ public record Vector2Int(int X, int Y)
 
     public static Vector2Int operator +(Vector2Int a, Vector2Int b)
     {
-        return new(a.X + b.X, a.Y + b.Y);
+        return new Vector2Int(a.X + b.X, a.Y + b.Y);
+    }
+
+    // public static bool operator <(Vector2Int a, Vector2Int b)
+    //     => ;
+
+    public int ManhattanDistanceTo(Vector2Int other)
+    {
+        return Math.Abs(X - other.X) + Math.Abs(Y - other.Y);
+    }
+
+    public bool WithinRange(Vector2Int range, Vector2Int otherPoint)
+    {
+        return ManhattanDistanceTo(otherPoint) <= ManhattanDistanceTo(range);
     }
 
     /// <summary>
