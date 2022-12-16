@@ -30,7 +30,6 @@ public sealed class Day15 : CustomDirBaseDay
     private static IEnumerable<Interval> MergeIntervals(List<Interval> lst)
     {
         lst.Sort((a, b) => a.Start - b.Start);
-
         var stack = new Stack<Interval>();
         stack.Push(lst[0]);
 
@@ -39,7 +38,9 @@ public sealed class Day15 : CustomDirBaseDay
             var curr = lst[i];
             var top = stack.Peek();
 
-            if (top.End < curr.Start)
+            // had to update the range checking here
+            // since we want to merge ie [[0,11] [12,24]]
+            if (top.End + 1 < curr.Start)
             {
                 stack.Push(curr);
             }
@@ -52,23 +53,6 @@ public sealed class Day15 : CustomDirBaseDay
 
         return stack.ToList();
     }
-
-    // private static IEnumerable<Interval> GetMergedIntervalsHorizontal(IEnumerable<SensorRange> scanData, int scanY)
-    // {
-    //     var intervals = scanData
-    //         .Select(sensor =>
-    //         {
-    //             var distToScanLevel = sensor.Position.ManhattanDistanceTo(sensor.Position with { Y = scanY });
-    //             var rangeRemaining = sensor.Range - distToScanLevel;
-    //             if (rangeRemaining < 0) return new Interval(0, 0);
-    //             var xMin = sensor.Position.X - rangeRemaining;
-    //             var xMax = sensor.Position.X + rangeRemaining;
-    //             return new Interval(xMin, xMax);
-    //         })
-    //         .Where(x => !x.IsZero())
-    //         .ToList();
-    //     return MergeIntervals(intervals);
-    // }
 
     private static IEnumerable<Interval> GetMergedIntervals(IEnumerable<SensorRange> scanData, int fixedScanVal,
         bool horizontal)
@@ -98,10 +82,11 @@ public sealed class Day15 : CustomDirBaseDay
         return intervals.Select(x => x.CountRange()).Sum();
     }
 
-    private int CountPossibleBeaconPositionsWithLimit(IEnumerable<SensorRange> scanData, int scanY, Interval allowed,
+    private int CountPossibleBeaconPositionsWithLimit(IEnumerable<SensorRange> scanData, int fixedScanVal,
+        Interval allowed,
         bool horizontal)
     {
-        var intervals = GetMergedIntervals(scanData, scanY, horizontal);
+        var intervals = GetMergedIntervals(scanData, fixedScanVal, horizontal);
         return intervals.Select(interval =>
             new Interval(
                 Math.Max(allowed.Start, interval.Start),
@@ -109,20 +94,20 @@ public sealed class Day15 : CustomDirBaseDay
         ).Sum();
     }
 
-    private Vector2Int FindPossiblePosition(IReadOnlyCollection<SensorRange> scanData, Interval possibleX,
+    private long FindTuningFrequency(IReadOnlyCollection<SensorRange> scanData, Interval possibleX,
         Interval possibleY)
     {
         var expectedHorizontalCount = possibleX.CountRange();
-        var y = Enumerable.Range(possibleY.Start, possibleY.End)
+        var y = (long)Enumerable.Range(possibleY.Start, possibleY.End)
             .First(y =>
                 CountPossibleBeaconPositionsWithLimit(scanData, y, possibleX, true) < expectedHorizontalCount);
 
         var expectedVerticalCount = possibleX.CountRange();
-        var x = Enumerable.Range(possibleX.Start, possibleX.End)
+        var x = (long)Enumerable.Range(possibleX.Start, possibleX.End)
             .First(x =>
                 CountPossibleBeaconPositionsWithLimit(scanData, x, possibleY, false) < expectedVerticalCount);
 
-        return new Vector2Int(x, y);
+        return x * 4_000_000 + y;
     }
 
     public override ValueTask<string> Solve_1()
@@ -135,15 +120,12 @@ public sealed class Day15 : CustomDirBaseDay
     public override ValueTask<string> Solve_2()
     {
         var scanData = ParseInput(_input).ToList();
-        var result = "";
-        //     FindPossiblePosition(
-        //     scanData, 
-        //     new Interval(0, 20),
-        //     new Interval(0, 20)
-        //     // new Interval(0, 4_000_000),
-        //     // new Interval(0, 4_000_000)
-        // );
-        return new ValueTask<string>(result);
+        var result = FindTuningFrequency(
+            scanData,
+            new Interval(0, 4_000_000),
+            new Interval(0, 4_000_000)
+        );
+        return new ValueTask<string>(result.ToString());
     }
 
     private record SensorRange(Vector2Int Position, int Range);
