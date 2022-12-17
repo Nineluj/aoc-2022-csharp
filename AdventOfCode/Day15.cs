@@ -119,6 +119,10 @@ public sealed class Day15 : CustomDirBaseDay
 
     public override ValueTask<string> Solve_2()
     {
+        /*
+         * This could be optimized by only checking the positions on the very edge of all the
+         * shapes created by each sensor.
+         */
         var scanData = ParseInput(_input).ToList();
         var result = FindTuningFrequency(
             scanData,

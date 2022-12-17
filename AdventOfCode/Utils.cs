@@ -45,4 +45,11 @@ public static class Utils
     {
         return source.GetRange(from, source.Count - from);
     }
+
+    public static HashSet<T> WithNewItem<T>(this HashSet<T> obj, T newItem)
+    {
+        var newHashSet = new HashSet<T>(obj);
+        newHashSet.Add(newItem);
+        return newHashSet;
+    }
 }
