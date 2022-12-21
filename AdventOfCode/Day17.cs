@@ -4,35 +4,63 @@ namespace AdventOfCode;
 
 public sealed class Day17 : CustomDirBaseDay
 {
-    private static readonly List<Vector2Int> HorizontalLineShape = new()
+    private class Shape
     {
-        new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0)
-    };
+        public List<Vector2Int> Points;
+        
+        private static readonly List<Vector2Int> HorizontalLineShape = new()
+        {
+            new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0)
+        };
 
-    private static readonly List<Vector2Int> PlusShape = new()
-    {
-        new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(2, 1), new Vector2Int(1, 2)
-    };
+        private static readonly List<Vector2Int> PlusShape = new()
+        {
+            new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(0, 1), new Vector2Int(2, 1), new Vector2Int(1, 2)
+        };
 
-    private static readonly List<Vector2Int> ReverseLShape = new()
-    {
-        new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2)
-    };
+        private static readonly List<Vector2Int> ReverseLShape = new()
+        {
+            new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2)
+        };
 
-    private static readonly List<Vector2Int> VerticalLineShape = new()
-    {
-        new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(0, 3)
-    };
+        private static readonly List<Vector2Int> VerticalLineShape = new()
+        {
+            new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(0, 3)
+        };
+        
+        private static readonly List<Vector2Int> BoxShape = new()
+        {
+            new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1)
+        };
+        
+        private static readonly List<Vector2Int>[] ShapeForIndex =
+        {
+            HorizontalLineShape, PlusShape, ReverseLShape, VerticalLineShape, BoxShape
+        };
 
-    private static readonly List<Vector2Int> BoxShape = new()
-    {
-        new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1)
-    };
+        public Shape(int i, int currentMaxHeight)
+        {
+            var vectorOffset = new Vector2Int(2, currentMaxHeight + 3);
+            Points = ShapeForIndex[i % ShapeForIndex.Length].Select(x => x + vectorOffset).ToList();
+        }
 
-    private static readonly List<Vector2Int>[] ShapeForIndex =
-    {
-        HorizontalLineShape, PlusShape, ReverseLShape, VerticalLineShape, BoxShape
-    };
+        public bool Move(Direction d, Func<Vector2Int, bool> hasCollision)
+        {
+            var vec = d switch
+            {
+                Direction.Left => new Vector2Int(-1, 0),
+                Direction.Right => new Vector2Int(1, 0),
+                Direction.Down => new Vector2Int(0, -1),
+                Direction.Up => throw new ArgumentException("Cannot move shape up."),
+                _ => throw new ArgumentOutOfRangeException(nameof(d), d, null)
+            };
+            var candidatePoints = Points.Select(x => x + vec).ToList();
+            if (candidatePoints.Any(hasCollision)) return true;
+            Points = candidatePoints;
+            return false;
+
+        }
+    }
 
     private readonly string _input;
 
@@ -41,97 +69,122 @@ public sealed class Day17 : CustomDirBaseDay
         _input = File.ReadAllText(InputFilePath);
     }
 
-    public IEnumerable<Direction> ParseInput(string input)
+    private static IEnumerable<Direction> ParseInput(string input)
     {
-        return input.Select(c => c == '>'
-            ? Direction.Right
-            : c == '<'
-                ? Direction.Left
-                : throw new ArgumentException($"Not a valid direction: {c}"));
+        return Utils.GetLines(input).ToList()[0].Select(c => c switch
+        {
+            '>' => Direction.Right,
+            '<' => Direction.Left,
+            _ => throw new ArgumentException($"Not a valid direction: {c}")
+        });
     }
 
-    private MovingShape GetNextShape(int i, List<bool[]> state)
+    public class TetrisGame
     {
-        var yOffset = state.Select((line, index) => line.Any(c => c) ? index : 0).Max() + 3;
-        return new MovingShape(ShapeForIndex[i % ShapeForIndex.Length], new Vector2Int(2, yOffset));
+        private List<bool[]> _board;
+        private Shape _curr;
+        public int ShapeIndex;
+
+        public TetrisGame()
+        {
+            ShapeIndex = 0;
+            _board = Enumerable
+                .Range(0, 10000)
+                .Select(_ => Enumerable
+                    .Range(0, 7)
+                    .Select(_ => false)
+                    .ToArray())
+                .ToList();
+            _curr = new Shape(0, 0);
+        }
+
+        public int GetHeight()
+        {
+            return _board.Select((line, index) => line.Any(c => c) ? index + 1 : 0).Max();
+        }
+
+        public void Draw()
+        {
+            Console.Clear();
+            // Console.WriteLine(new string('=', 20));
+            for (var y = _board.Count - 1; y >= 0; y--)
+            {
+                for (var x = 0; x < _board[0].Length; x++)
+                {
+                    Console.Write(_curr.Points.Contains(new Vector2Int(x, y)) 
+                        ? '@'
+                        : _board[y][x]
+                            ? '#' : '.');
+                }
+                Console.WriteLine();
+            }
+        }
+
+        private bool HasCollision(Vector2Int point)
+        {
+            return (point.Y >= _board.Count || point.Y < 0)
+                   || (point.X >= _board[0].Length || point.X < 0) || _board[point.Y][point.X];
+        }
+
+        public void Tick(Direction? direction)
+        {
+            if (direction is not null)
+            {
+                _curr.Move(direction.Value, HasCollision);
+            }
+            var downMoveCollision = _curr.Move(Direction.Down, HasCollision);
+
+            if (downMoveCollision)
+            {
+                foreach (var point in _curr.Points)
+                {
+                    _board[point.Y][point.X] = true;
+                }
+
+                ShapeIndex++;
+                _curr = new Shape(ShapeIndex, GetHeight());
+            }
+        }
     }
 
-    private int Simulate(List<Direction> moves, int maxRocks)
+    private async Task<int> Simulate(List<Direction> moves, int maxRocks)
     {
+        /*
         var stoppedRocks = 0;
         var heightOffset = 0;
-        var state = Enumerable
-            .Range(0, 4)
-            .Select(_ => Enumerable
-                .Range(0, 7)
-                .Select(_ => false)
-                .ToArray())
-            .ToList();
 
-        MovingShape shape;
+        Shape movingShape;
+        var needCreateShape = true;
         var moveIndex = 0;
-        while (stoppedRocks < maxRocks)
+        */
+
+        var moveIndex = 0;
+        var game = new TetrisGame();
+        // game.Draw();
+        while (game.ShapeIndex < 2022) //stoppedRocks < maxRocks)
         {
-            shape = GetNextShape(moveIndex, state);
-
+            game.Tick(moves[moveIndex % moves.Count]);
+            // game.Draw();
             moveIndex++;
-
-
+            // await Task.Delay(500);
             // checked the row where each cell of the shape stopped. If full,
             // remove ALL the rows below it, increment heightOffset
         }
 
-        return state.Count + heightOffset;
+        return game.GetHeight();  // board.Count + heightOffset;
     }
 
-    public override ValueTask<string> Solve_1()
+    public override async ValueTask<string> Solve_1()
     {
         var moves = ParseInput(_input);
-        var result = Simulate(moves.ToList(), 2022);
-        return new ValueTask<string>(result.ToString());
+        var result = await Simulate(moves.ToList(), 2022);
+        return result.ToString();
     }
 
     public override ValueTask<string> Solve_2()
     {
         var result = "";
-        throw new NotImplementedException();
-        // return new ValueTask<string>(result.ToString());
-    }
-
-    private record MovingShape(List<Vector2Int> Points, Vector2Int Offset)
-    {
-        // public void Move()
+        // throw new NotImplementedException();
+        return new ValueTask<string>(result.ToString());
     }
 }
-
-// private static CellState[,] HorizontalLineShape = new CellState[1, 4]
-//     { { CellState.FallingBlock, CellState.FallingBlock, CellState.FallingBlock, CellState.FallingBlock } };
-//
-// private static CellState[,] PlusShape = new CellState[3, 3]
-// {
-//     { CellState.Empty, CellState.FallingBlock, CellState.Empty },
-//     { CellState.FallingBlock, CellState.FallingBlock, CellState.FallingBlock },
-//     { CellState.Empty, CellState.FallingBlock, CellState.Empty }
-// };
-//
-//
-// private static CellState[,] ReverseLShape = new CellState[3, 3]
-// {
-//     { CellState.Empty, CellState.Empty, CellState.FallingBlock },
-//     { CellState.Empty, CellState.Empty, CellState.FallingBlock },
-//     { CellState.FallingBlock, CellState.FallingBlock, CellState.FallingBlock }
-// };
-//
-// private static CellState[,] VerticalLineShape = new CellState[4, 1]
-// {
-//     { CellState.FallingBlock },
-//     { CellState.FallingBlock },
-//     { CellState.FallingBlock },
-//     { CellState.FallingBlock }
-// };
-//
-// private static CellState[,] BoxShape = new CellState[2, 2]
-// {
-//     { CellState.FallingBlock, CellState.FallingBlock },
-//     { CellState.FallingBlock, CellState.FallingBlock }
-// };
